@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext
-import yaml
 import os
 import sys
 import threading
@@ -21,26 +20,25 @@ ERROR_COLOR = "#f38ba8"
 class YoloTrainerApp:
     def __init__(self, root):
         self.root = root
-        
+
         # Detect if CUDA is available
         try:
             import torch
             cuda_available = torch.cuda.is_available()
         except ImportError:
             cuda_available = False
-        
+
         suffix = " [CUDA]" if cuda_available else " [CPU]"
         self.root.title("AI Trash - YOLO Model Manager" + suffix)
-        
+
         # Set default device based on CUDA detection
         default_device = "0" if cuda_available else "cpu"
-        
+
         self.current_process = None
         self.root.geometry("1000x800")
         self.root.configure(bg=BG_COLOR)
         self.root.minsize(900, 700)
         self.selected_model_path = tk.StringVar()
-        self.config_path = tk.StringVar()
         self.dataset_path = tk.StringVar()
         self.save_folder = tk.StringVar()
         self.source_path = tk.StringVar()
@@ -63,7 +61,7 @@ class YoloTrainerApp:
             except Exception:
                 pass
             self.current_process = None
-        
+
         self.clear_frame()
         header = tk.Frame(self.root, bg=BG_COLOR)
         header.pack(pady=50)
@@ -156,13 +154,13 @@ class YoloTrainerApp:
             return
         self.clear_frame()
         self.build_header("Use Model — Run Predictions")
-        
+
         self.inf_main_frame = tk.Frame(self.root, bg=BG_COLOR)
         self.inf_main_frame.pack(fill="both", expand=True)
-        
+
         self.inf_settings_frame = tk.Frame(self.inf_main_frame, bg=BG_COLOR)
         self.inf_settings_frame.pack(fill="both", expand=True)
-        
+
         canvas = tk.Canvas(self.inf_settings_frame, bg=BG_COLOR, highlightthickness=0)
         scrollbar = ttk.Scrollbar(self.inf_settings_frame, orient="vertical", command=canvas.yview)
         content = tk.Frame(canvas, bg=BG_COLOR)
@@ -175,7 +173,7 @@ class YoloTrainerApp:
             canvas.yview_scroll(int(-1*(event.delta/120)), "units")
         canvas.bind_all("<MouseWheel>", on_mousewheel)
         content.pack(pady=20, padx=50)
-        
+
         tk.Label(content, text="Source (Image or Folder):",
                 font=("Segoe UI", 12, "bold"), bg=BG_COLOR, fg=FG_COLOR).pack(anchor="w", pady=(10,5))
         src_frame = tk.Frame(content, bg=BG_COLOR)
@@ -189,7 +187,7 @@ class YoloTrainerApp:
         tk.Button(src_frame, text="Browse Folder", font=("Segoe UI", 10),
                  bg=BUTTON_BG, fg=BUTTON_FG, cursor="hand2",
                  command=lambda: self.browse_source("folder")).pack(side="left", padx=2)
-        
+
         tk.Label(content, text="Save Predictions To:",
                 font=("Segoe UI", 12, "bold"), bg=BG_COLOR, fg=FG_COLOR).pack(anchor="w", pady=(20,5))
         save_frame = tk.Frame(content, bg=BG_COLOR)
@@ -200,41 +198,23 @@ class YoloTrainerApp:
         tk.Button(save_frame, text="Browse", font=("Segoe UI", 10),
                  bg=BUTTON_BG, fg=BUTTON_FG, cursor="hand2",
                  command=self.browse_save_folder).pack(side="left")
-        
+
         settings_frame = tk.LabelFrame(content, text=" Essential Settings ",
                                       font=("Segoe UI", 13, "bold"),
                                       bg=BG_COLOR, fg=ACCENT_COLOR,
                                       bd=2, relief="groove")
         settings_frame.pack(fill="x", pady=25, padx=5)
-        tk.Label(settings_frame, text="Confidence Threshold:",
-                font=("Segoe UI", 11), bg=BG_COLOR, fg=FG_COLOR).grid(row=0, column=0, sticky="w", padx=15, pady=10)
-        self.conf_scale = tk.Scale(settings_frame, from_=0.01, to=1.0, resolution=0.01,
-                                  orient="horizontal", length=250,
-                                  bg=BG_COLOR, fg=FG_COLOR, highlightthickness=0)
-        self.conf_scale.set(0.25)
-        self.conf_scale.grid(row=0, column=1, sticky="w", padx=15, pady=10)
-        tk.Label(settings_frame, text="IoU Threshold:",
-                font=("Segoe UI", 11), bg=BG_COLOR, fg=FG_COLOR).grid(row=1, column=0, sticky="w", padx=15, pady=10)
-        self.iou_scale = tk.Scale(settings_frame, from_=0.01, to=1.0, resolution=0.01,
-                                 orient="horizontal", length=250,
-                                 bg=BG_COLOR, fg=FG_COLOR, highlightthickness=0)
-        self.iou_scale.set(0.45)
-        self.iou_scale.grid(row=1, column=1, sticky="w", padx=15, pady=10)
         tk.Label(settings_frame, text="Device:",
-                font=("Segoe UI", 11), bg=BG_COLOR, fg=FG_COLOR).grid(row=2, column=0, sticky="w", padx=15, pady=10)
+                font=("Segoe UI", 11), bg=BG_COLOR, fg=FG_COLOR).grid(row=0, column=0, sticky="w", padx=15, pady=10)
 
         inf_dev_combo = ttk.Combobox(settings_frame, textvariable=self.device_var,
                     values=["0", "0,1","cpu"],
                     state="readonly", width=18)
-        inf_dev_combo.grid(row=2, column=1, sticky="w", padx=15, pady=10)
+        inf_dev_combo.grid(row=0, column=1, sticky="w", padx=15, pady=10)
         self._style_combo(inf_dev_combo)
-        self.save_txt_var = tk.BooleanVar(value=False)
-        tk.Checkbutton(settings_frame, text="Save detection labels (.txt)",
-                      variable=self.save_txt_var,
-                      font=("Segoe UI", 11), bg=BG_COLOR, fg=FG_COLOR,
-                      selectcolor=BG_COLOR, activebackground=BG_COLOR,
-                      activeforeground=FG_COLOR).grid(row=3, column=0, columnspan=2, sticky="w", padx=15, pady=10)
-        
+        tk.Label(settings_frame, text="Classification models predict the single most likely class per image.",
+                font=("Segoe UI", 9), bg=BG_COLOR, fg="#6c7086").grid(row=1, column=0, columnspan=2, sticky="w", padx=15, pady=10)
+
         self.adv_inf_frame = tk.LabelFrame(content, text=" Advanced Settings ",
                                            font=("Segoe UI", 13, "bold"),
                                            bg=BG_COLOR, fg=WARNING_COLOR,
@@ -243,7 +223,7 @@ class YoloTrainerApp:
                  bg=BUTTON_BG, fg=WARNING_COLOR, cursor="hand2",
                  command=self.toggle_advanced_inference)
         self.adv_inf_btn.pack(pady=10)
-        
+
         self.btn_frame = tk.Frame(content, bg=BG_COLOR)
         self.btn_frame.pack(pady=20)
         tk.Button(self.btn_frame, text="← Back", font=("Segoe UI", 12),
@@ -254,21 +234,21 @@ class YoloTrainerApp:
                  command=self.show_console_view).pack(side="left", padx=10)
 
         self.inf_console_frame = tk.Frame(self.inf_main_frame, bg=BG_COLOR)
-        
+
         console_header = tk.Frame(self.inf_console_frame, bg=BG_COLOR)
         console_header.pack(fill="x", pady=20)
         tk.Label(console_header, text="Running Inference...", font=("Segoe UI", 22, "bold"),
                 bg=BG_COLOR, fg=SUCCESS_COLOR).pack()
-        
+
         self.build_log_area(self.inf_console_frame)
         self.log_text.configure(height=28)
-        
+
         console_btn_frame = tk.Frame(self.inf_console_frame, bg=BG_COLOR)
         console_btn_frame.pack(pady=20)
         tk.Button(console_btn_frame, text="← Back to Settings", font=("Segoe UI", 12),
                  bg=BUTTON_BG, fg=BUTTON_FG, width=18, cursor="hand2",
                  command=self.show_settings_view).pack(side="left", padx=10)
- 
+
     def show_console_view(self):
         model = self.selected_model_path.get()
         source = self.source_path.get()
@@ -282,14 +262,14 @@ class YoloTrainerApp:
         if not save_dir:
             messagebox.showerror("Error", "Please select a save folder!")
             return
-        
+
         self.inf_settings_frame.pack_forget()
         self.inf_console_frame.pack(fill="both", expand=True)
-        
+
         self.log_text.configure(state="normal")
         self.log_text.delete(1.0, "end")
         self.log_text.configure(state="disabled")
-        
+
         self._do_run_inference()
 
     def show_settings_view(self):
@@ -333,7 +313,7 @@ class YoloTrainerApp:
                 font=("Segoe UI", 11), bg=BG_COLOR, fg=FG_COLOR).grid(row=2, column=0, sticky="w", padx=15, pady=8)
         self.inf_imgsz = tk.Entry(self.adv_inf_frame, font=("Segoe UI", 11),
                                  bg=ENTRY_BG, fg=ENTRY_FG, insertbackground=FG_COLOR, width=18)
-        self.inf_imgsz.insert(0, "640")
+        self.inf_imgsz.insert(0, "224")
         self.inf_imgsz.grid(row=2, column=1, sticky="w", padx=15, pady=8)
         self.half_var = tk.BooleanVar(value=False)
         tk.Checkbutton(self.adv_inf_frame, text="Half Precision (FP16)",
@@ -372,14 +352,14 @@ class YoloTrainerApp:
         self.clear_frame()
         title = "Improve Model (Fine-tune)" if mode == "improve" else "Train New Model"
         self.build_header(title)
-        
+
         self.train_main_frame = tk.Frame(self.root, bg=BG_COLOR)
         self.train_main_frame.pack(fill="both", expand=True)
-        
+
         # --- SETTINGS VIEW ---
         self.train_settings_frame = tk.Frame(self.train_main_frame, bg=BG_COLOR)
         self.train_settings_frame.pack(fill="both", expand=True)
-        
+
         canvas = tk.Canvas(self.train_settings_frame, bg=BG_COLOR, highlightthickness=0)
         scrollbar = ttk.Scrollbar(self.train_settings_frame, orient="vertical", command=canvas.yview)
         scroll_frame = tk.Frame(canvas, bg=BG_COLOR)
@@ -392,7 +372,7 @@ class YoloTrainerApp:
             canvas.yview_scroll(int(-1*(event.delta/120)), "units")
         canvas.bind_all("<MouseWheel>", on_mousewheel)
         content = scroll_frame
-        
+
         if mode == "improve":
             tk.Label(content, text="Base Model: " + self.selected_model_path.get(),
                     font=("Segoe UI", 11, "italic"), bg=BG_COLOR, fg=SUCCESS_COLOR,
@@ -411,19 +391,8 @@ class YoloTrainerApp:
             arch_combo.pack(side="left")
             # Fix dropdown colors
             self._style_combo(arch_combo)
-        
-        tk.Label(content, text="Select Dataset Config (config.yaml):",
-                font=("Segoe UI", 12, "bold"), bg=BG_COLOR, fg=FG_COLOR).pack(anchor="w", pady=(25,5), padx=25)
-        config_frame = tk.Frame(content, bg=BG_COLOR)
-        config_frame.pack(fill="x", pady=5, padx=25)
-        tk.Entry(config_frame, textvariable=self.config_path,
-                font=("Segoe UI", 11), bg=ENTRY_BG, fg=ENTRY_FG,
-                insertbackground=FG_COLOR, width=55).pack(side="left", padx=(0,10))
-        tk.Button(config_frame, text="Browse", font=("Segoe UI", 10),
-                 bg=BUTTON_BG, fg=BUTTON_FG, cursor="hand2",
-                 command=self.browse_config).pack(side="left")
-        
-        tk.Label(content, text="Dataset Root Folder (updates config.yaml 'path:'):",
+
+        tk.Label(content, text="Dataset Folder (folder with class subfolders like cardboard/, glass/, etc.):",
                 font=("Segoe UI", 12, "bold"), bg=BG_COLOR, fg=FG_COLOR).pack(anchor="w", pady=(20,5), padx=25)
         ds_frame = tk.Frame(content, bg=BG_COLOR)
         ds_frame.pack(fill="x", pady=5, padx=25)
@@ -433,10 +402,8 @@ class YoloTrainerApp:
         tk.Button(ds_frame, text="Browse", font=("Segoe UI", 10),
                  bg=BUTTON_BG, fg=BUTTON_FG, cursor="hand2",
                  command=self.browse_dataset_folder).pack(side="left")
-        tk.Button(ds_frame, text="Auto-load from Config", font=("Segoe UI", 10),
-                 bg=ACCENT_COLOR, fg=BG_COLOR, cursor="hand2",
-                 command=self.auto_load_dataset_path).pack(side="left", padx=10)
-        
+
+
         tk.Label(content, text="Save Model To Folder:",
                 font=("Segoe UI", 12, "bold"), bg=BG_COLOR, fg=FG_COLOR).pack(anchor="w", pady=(20,5), padx=25)
         save_frame = tk.Frame(content, bg=BG_COLOR)
@@ -447,34 +414,34 @@ class YoloTrainerApp:
         tk.Button(save_frame, text="Browse", font=("Segoe UI", 10),
                  bg=BUTTON_BG, fg=BUTTON_FG, cursor="hand2",
                  command=self.browse_save_folder).pack(side="left")
-        
+
         ess_frame = tk.LabelFrame(content, text=" Essential Training Settings ",
                                  font=("Segoe UI", 13, "bold"),
                                  bg=BG_COLOR, fg=ACCENT_COLOR,
                                  bd=2, relief="groove")
         ess_frame.pack(fill="x", pady=25, padx=25)
-        
+
         tk.Label(ess_frame, text="Epochs:", font=("Segoe UI", 11),
                 bg=BG_COLOR, fg=FG_COLOR).grid(row=0, column=0, sticky="w", padx=15, pady=10)
         self.epochs = tk.Entry(ess_frame, font=("Segoe UI", 11),
                               bg=ENTRY_BG, fg=ENTRY_FG, insertbackground=FG_COLOR, width=18)
         self.epochs.insert(0, "100")
         self.epochs.grid(row=0, column=1, sticky="w", padx=15, pady=10)
-        
+
         tk.Label(ess_frame, text="Image Size (imgsz):", font=("Segoe UI", 11),
                 bg=BG_COLOR, fg=FG_COLOR).grid(row=1, column=0, sticky="w", padx=15, pady=10)
         self.imgsz = tk.Entry(ess_frame, font=("Segoe UI", 11),
                              bg=ENTRY_BG, fg=ENTRY_FG, insertbackground=FG_COLOR, width=18)
-        self.imgsz.insert(0, "640")
+        self.imgsz.insert(0, "224")
         self.imgsz.grid(row=1, column=1, sticky="w", padx=15, pady=10)
-        
+
         tk.Label(ess_frame, text="Batch Size:", font=("Segoe UI", 11),
                 bg=BG_COLOR, fg=FG_COLOR).grid(row=2, column=0, sticky="w", padx=15, pady=10)
         self.batch = tk.Entry(ess_frame, font=("Segoe UI", 11),
                              bg=ENTRY_BG, fg=ENTRY_FG, insertbackground=FG_COLOR, width=18)
         self.batch.insert(0, "16")
         self.batch.grid(row=2, column=1, sticky="w", padx=15, pady=10)
-        
+
         tk.Label(ess_frame, text="Device:", font=("Segoe UI", 11),
                 bg=BG_COLOR, fg=FG_COLOR).grid(row=3, column=0, sticky="w", padx=15, pady=10)
 
@@ -482,28 +449,28 @@ class YoloTrainerApp:
                     values=["0", "0,1","cpu"], state="readonly", width=18)
         train_dev_combo.grid(row=3, column=1, sticky="w", padx=15, pady=10)
         self._style_combo(train_dev_combo)
-        
+
         tk.Label(ess_frame, text="Workers:", font=("Segoe UI", 11),
                 bg=BG_COLOR, fg=FG_COLOR).grid(row=4, column=0, sticky="w", padx=15, pady=10)
         self.workers = tk.Entry(ess_frame, font=("Segoe UI", 11),
                                bg=ENTRY_BG, fg=ENTRY_FG, insertbackground=FG_COLOR, width=18)
         self.workers.insert(0, "8")
         self.workers.grid(row=4, column=1, sticky="w", padx=15, pady=10)
-        
+
         tk.Label(ess_frame, text="Project Name:", font=("Segoe UI", 11),
                 bg=BG_COLOR, fg=FG_COLOR).grid(row=0, column=2, sticky="w", padx=40, pady=10)
         self.project_name = tk.Entry(ess_frame, font=("Segoe UI", 11),
                                     bg=ENTRY_BG, fg=ENTRY_FG, insertbackground=FG_COLOR, width=22)
         self.project_name.insert(0, "AI_Trash_Training")
         self.project_name.grid(row=0, column=3, sticky="w", padx=15, pady=10)
-        
+
         tk.Label(ess_frame, text="Run Name:", font=("Segoe UI", 11),
                 bg=BG_COLOR, fg=FG_COLOR).grid(row=1, column=2, sticky="w", padx=40, pady=10)
         self.run_name = tk.Entry(ess_frame, font=("Segoe UI", 11),
                                 bg=ENTRY_BG, fg=ENTRY_FG, insertbackground=FG_COLOR, width=22)
         self.run_name.insert(0, "exp")
         self.run_name.grid(row=1, column=3, sticky="w", padx=15, pady=10)
-        
+
         self.adv_train_frame = tk.LabelFrame(content, text=" Advanced Training Settings ",
                                             font=("Segoe UI", 13, "bold"),
                                             bg=BG_COLOR, fg=WARNING_COLOR,
@@ -512,7 +479,7 @@ class YoloTrainerApp:
                  bg=BUTTON_BG, fg=WARNING_COLOR, cursor="hand2",
                  command=self.toggle_advanced_training)
         self.adv_train_btn.pack(pady=10)
-        
+
         self.train_btn_frame = tk.Frame(content, bg=BG_COLOR)
         self.train_btn_frame.pack(pady=25)
         tk.Button(self.train_btn_frame, text="← Back", font=("Segoe UI", 12),
@@ -526,45 +493,50 @@ class YoloTrainerApp:
 
         # --- CONSOLE VIEW (hidden) ---
         self.train_console_frame = tk.Frame(self.train_main_frame, bg=BG_COLOR)
-        
+
         console_header = tk.Frame(self.train_console_frame, bg=BG_COLOR)
         console_header.pack(fill="x", pady=20)
         tk.Label(console_header, text="Training in Progress...", font=("Segoe UI", 22, "bold"),
                 bg=BG_COLOR, fg=SUCCESS_COLOR).pack()
-        
+
         self.build_log_area(self.train_console_frame)
         self.log_text.configure(height=28)
-        
+
         console_btn_frame = tk.Frame(self.train_console_frame, bg=BG_COLOR)
         console_btn_frame.pack(pady=20)
         tk.Button(console_btn_frame, text="← Back to Settings", font=("Segoe UI", 12),
                  bg=BUTTON_BG, fg=BUTTON_FG, width=18, cursor="hand2",
                  command=self.show_train_settings_view).pack(side="left", padx=10)
-        
+
         self.current_mode = mode
 
 
     def show_train_console_view(self):
-        config = self.config_path.get()
         dataset = self.dataset_path.get()
         save_dir = self.save_folder.get()
-        if not config or not os.path.exists(config):
-            messagebox.showerror("Error", "Please select a valid config.yaml file!")
+        if not dataset or not os.path.exists(dataset):
+            messagebox.showerror("Error", "Please select a valid dataset folder!")
             return
-        if not dataset:
-            messagebox.showerror("Error", "Please select a dataset folder!")
+        # Validate: folder must contain subdirectories (class folders)
+        try:
+            subdirs = [d for d in os.listdir(dataset) if os.path.isdir(os.path.join(dataset, d))]
+            if not subdirs:
+                messagebox.showerror("Error", "Dataset folder must contain subfolders (one per class, e.g. cardboard/, glass/, etc.)")
+                return
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not read dataset folder: {e}")
             return
         if not save_dir:
             messagebox.showerror("Error", "Please select a save folder!")
             return
-        
+
         self.train_settings_frame.pack_forget()
         self.train_console_frame.pack(fill="both", expand=True)
-        
+
         self.log_text.configure(state="normal")
         self.log_text.delete(1.0, "end")
         self.log_text.configure(state="disabled")
-        
+
         self._do_run_training()
 
     def show_train_settings_view(self):
@@ -579,19 +551,17 @@ class YoloTrainerApp:
         self.train_settings_frame.pack(fill="both", expand=True)
 
 
+
     def _do_run_training(self):
         mode = self.current_mode
-        config = self.config_path.get()
         dataset = self.dataset_path.get()
         save_dir = self.save_folder.get()
-        
-        success, msg = self.update_config_path()
-        if not success:
-            messagebox.showerror("Config Error", "Failed to update config.yaml: " + msg)
+
+        if not dataset or not os.path.exists(dataset):
+            messagebox.showerror("Error", "Please select a valid dataset folder!")
             self.show_train_settings_view()
             return
-        self.log("Config updated: " + msg)
-        
+
         if mode == "improve":
             model_path = self.selected_model_path.get()
             if not model_path:
@@ -600,15 +570,15 @@ class YoloTrainerApp:
                 return
         else:
             model_path = self.arch_var.get()
-            
+
         kwargs = {
-            "data": config,
+            "data": dataset,
             "epochs": int(self.epochs.get() or 100),
-            "imgsz": int(self.imgsz.get() or 640),
+            "imgsz": int(self.imgsz.get() or 224),
             "batch": int(self.batch.get() or 16),
             "device": self.train_device.get(),
             "workers": int(self.workers.get() or 8),
-            "project": os.path.join(save_dir, self.project_name.get() or "AI_Trash_Training"),
+            "project": os.path.join(save_dir, self.project_name.get() or "AI_Trash_Classification"),
             "name": self.run_name.get() or "exp",
             "exist_ok": False,
         }
@@ -631,29 +601,33 @@ class YoloTrainerApp:
                 kwargs["amp"] = self.amp_var.get()
             if hasattr(self, 'exist_ok_var'):
                 kwargs["exist_ok"] = self.exist_ok_var.get()
+        
         kwargs_str = ",\n    ".join([k + "=" + repr(v) for k, v in kwargs.items()])
-        script = 'import sys\n'
-        script += 'sys.path.insert(0, ".")\n'
-        script += 'from ultralytics import YOLO\n'
-        script += 'import warnings\n'
-        script += 'warnings.filterwarnings("ignore")\n'
-        script += 'print("Loading model...")\n'
-        script += 'model = YOLO(r"' + model_path + '")\n'
-        script += 'print("Model loaded: ' + model_path + '")\n'
-        script += 'print("Starting training with config: ' + config + '")\n'
-        script += 'print("Dataset path: ' + dataset + '")\n'
-        script += 'print("=" * 60)\n'
-        script += 'results = model.train(\n'
-        script += '    ' + kwargs_str + '\n'
-        script += ')\n'
-        script += 'print("=" * 60)\n'
-        script += 'print("\\n✅ Training complete!")\n'
-        script += 'print("Best model saved to: " + str(results.best))\n'
+        
+        script_lines = [
+            'import sys',
+            'sys.path.insert(0, ".")',
+            'from ultralytics import YOLO',
+            'import warnings',
+            'warnings.filterwarnings("ignore")',
+            'print("Loading model...")',
+            f'model = YOLO(r"{model_path}")',
+            f'print("Model loaded: {model_path}")',
+            f'print("Dataset path: {dataset}")',
+            'print("=" * 60)',
+            'results = model.train(',
+            '    ' + kwargs_str,
+            ')',
+            'print("=" * 60)',
+            'print("\\nTraining complete!")',
+            'print("Best model saved to: " + str(results.best))',
+        ]
+        script = "\n".join(script_lines)
+        
         cmd = [sys.executable, "-c", script]
         self.log("=" * 60)
         self.log("Starting " + ("fine-tuning" if mode == "improve" else "training") + "...")
         self.log("Model: " + model_path)
-        self.log("Config: " + config)
         self.log("Dataset: " + dataset)
         self.log("Save to: " + save_dir)
         self.log("-" * 60)
@@ -802,15 +776,6 @@ class YoloTrainerApp:
                       font=("Segoe UI", 11), bg=BG_COLOR, fg=FG_COLOR,
                       selectcolor=BG_COLOR).grid(row=row+2, column=0, columnspan=2, sticky="w", padx=15, pady=6)
 
-    def browse_config(self):
-        path = filedialog.askopenfilename(
-            title="Select config.yaml",
-            filetypes=[("YAML files", "*.yaml *.yml"), ("All files", "*.*")]
-        )
-        if path:
-            self.config_path.set(path)
-            self.auto_load_dataset_path()
-
     def browse_dataset_folder(self):
         path = filedialog.askdirectory(title="Select Dataset Root Folder")
         if path:
@@ -821,74 +786,49 @@ class YoloTrainerApp:
         if path:
             self.save_folder.set(path)
 
-    def auto_load_dataset_path(self):
-        config_file = self.config_path.get()
-        if not config_file or not os.path.exists(config_file):
-            return
-        try:
-            with open(config_file, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
-            if config and 'path' in config:
-                self.dataset_path.set(config['path'])
-        except Exception:
-            pass
-
-
-    def update_config_path(self):
-        config_file = self.config_path.get()
-        dataset = self.dataset_path.get()
-        if not config_file or not os.path.exists(config_file):
-            return False, "Config file not found"
-        if not dataset:
-            return False, "Dataset folder not selected"
-        try:
-            with open(config_file, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f) or {}
-            config['path'] = dataset
-            with open(config_file, 'w', encoding='utf-8') as f:
-                yaml.dump(config, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
-            return True, "Updated path to: " + dataset
-        except Exception as e:
-            return False, str(e)
 
     def _do_run_inference(self):
         model = self.selected_model_path.get()
         source = self.source_path.get()
         save_dir = self.save_folder.get()
         os.makedirs(save_dir, exist_ok=True)
+        
         kwargs_lines = [
-            '    source=r"' + source + '",',
-            '    conf=' + str(self.conf_scale.get()) + ',',
-            '    iou=' + str(self.iou_scale.get()) + ',',
-            '    device="' + self.device_var.get() + '",',
+            f'    source=r"{source}",',
+            f'    device="{self.device_var.get()}",',
             '    save=True,',
-            '    save_txt=' + str(self.save_txt_var.get()) + ',',
-            '    project=r"' + save_dir + '",',
+            f'    project=r"{save_dir}",',
             '    name="predictions",',
             '    exist_ok=True,',
         ]
         if self.adv_inf_open:
-            if hasattr(self, 'max_det') and self.max_det.get():
-                kwargs_lines.append('    max_det=' + self.max_det.get() + ',')
-            if hasattr(self, 'classes_filter') and self.classes_filter.get():
-                kwargs_lines.append('    classes=[' + self.classes_filter.get() + '],')
             if hasattr(self, 'inf_imgsz') and self.inf_imgsz.get():
-                kwargs_lines.append('    imgsz=' + self.inf_imgsz.get() + ',')
+                kwargs_lines.append(f'    imgsz={self.inf_imgsz.get()},')
             if hasattr(self, 'half_var') and self.half_var.get():
                 kwargs_lines.append('    half=True,')
         kwargs_str = "\n".join(kwargs_lines)
-        script = 'import sys\n'
-        script += 'sys.path.insert(0, ".")\n'
-        script += 'from ultralytics import YOLO\n'
-        script += 'import os\n'
-        script += 'model = YOLO(r"' + model + '")\n'
-        script += 'results = model.predict(\n'
-        script += kwargs_str + '\n'
-        script += ')\n'
-        script += 'print("\\n✅ Predictions saved to: " + os.path.join(r"' + save_dir + '", "predictions"))\n'
+        
+        script_lines = [
+            'import sys',
+            'sys.path.insert(0, ".")',
+            'from ultralytics import YOLO',
+            'import os',
+            f'model = YOLO(r"{model}")',
+            'results = model.predict(',
+            kwargs_str,
+            ')',
+            'print("\\nClassification complete!")',
+            'for r in results:',
+            '    cls_name = r.names[r.probs.top1]',
+            '    conf = float(r.probs.top1conf)',
+            '    print("  Predicted: " + cls_name + " (" + str(round(conf*100,2)) + "%)")',
+            f'print("\\nResults saved to: " + os.path.join(r"{save_dir}", "predictions"))',
+        ]
+        script = "\n".join(script_lines)
+        
         cmd = [sys.executable, "-c", script]
         self.log("=" * 60)
-        self.log("Starting inference...")
+        self.log("Starting classification inference...")
         self.log("Model: " + model)
         self.log("Source: " + source)
         self.log("Save to: " + save_dir)
@@ -1088,4 +1028,3 @@ if __name__ == "__main__":
     root.state('zoomed')
     app = YoloTrainerApp(root)
     root.mainloop()
-    
