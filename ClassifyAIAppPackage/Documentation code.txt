@@ -1,0 +1,101 @@
+1. Training / Fine-tuning
+
+from ultralytics import YOLO
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+import shutil
+import yaml
+
+# Load model
+model = YOLO("yolov8s-cls.pt")  # or your selected .pt file
+
+# Define callback for per-epoch logging
+def on_train_epoch_end(trainer):
+    metrics = trainer.metrics
+    epoch = trainer.epoch + 1
+    total = trainer.epochs
+    print(f"  EPOCH {epoch}/{total} RESULTS")
+    for k, v in metrics.items():
+        if v is not None:
+            print(f"  {k}: {round(float(v), 4)}")
+
+model.add_callback("on_train_epoch_end", on_train_epoch_end)
+
+# Run training
+results = model.train(
+    data="/path/to/split/dataset",
+    epochs=100,
+    imgsz=224,
+    batch=16,
+    device="0",           # or "cpu"
+    workers=8,
+    project="/save/folder/AI_Trash_Training",
+    name="exp",
+    exist_ok=False,
+)
+
+--------------------------------
+
+2. Inference (Run Predictions)
+
+from ultralytics import YOLO
+import os
+
+model = YOLO("/path/to/your/model.pt")
+
+results = model.predict(
+    source="/path/to/image/or/folder",
+    device="0",           # or "cpu"
+    save=True,
+    project="/save/folder",
+    name="predictions",
+    exist_ok=True,
+    imgsz=224,            # optional (advanced)
+    half=False,           # optional (FP16)
+)
+
+# Then it renames output files by predicted class:
+# e.g., "image1.jpg" → "cardboard 1.jpg"
+
+--------------------------------
+
+3. Test Model (Accuracy Evaluation)
+
+from ultralytics import YOLO
+import json
+
+model = YOLO("/path/to/your/model.pt")
+
+# Build temporary data.yaml
+yaml_content = f"""
+path: /test/dataset
+train: /test/dataset
+val: /test/dataset
+test: /test/dataset
+nc: {num_classes}
+names: [class1, class2, ...]
+"""
+
+# Run YOLO validation
+results = model.val(
+    data="data.yaml",
+    imgsz=224,
+    device="0",
+    split='test',
+    save_json=True,
+    save_conf=True,
+    project="/save/folder",
+    name="test_results",
+    exist_ok=True,
+)
+
+# Then runs per-image prediction to count correct/wrong
+for each image in each class folder:
+    pred = model.predict(source=image, verbose=False)[0]
+    # Compare predicted class vs true class
+    # Log: ✅ CORRECT or ❌ WRONG
+
+--------------------------------
