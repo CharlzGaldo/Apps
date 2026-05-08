@@ -9,7 +9,7 @@ Steps on how to run my app: (Watch the end of the YouTube video)
 4. Run setup.bat. [Make sure you have python 3.12 installed before running the bat.] 
 This bat file will create a venv (virtual environment) that has all the requirements to run the app.py 
 
-3.1. If your computer does not support CUDA, please select “[1] CPU Only”.  
+4.1. If your computer does not support CUDA, please select “[1] CPU Only”.  
 Note: Selecting and installing “[2] GPU (Cuda)” will take a lot longer to install and will not work if the machine does not support CUDA. 
 
 5. Once the installer completes, close the .bat file and open the “run.bat” file. (Wait.) 
