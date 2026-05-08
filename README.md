@@ -1,4 +1,4 @@
-Steps on how to run my app: (Watch the end of the YouTube video) 
+Steps on how to run my app: (Watch the end of the YouTube video)  https://youtu.be/T15ZbdtPAzc
 1. Download the zip files from GitHub [https://github.com/CharlzGaldo/Apps.git]. 
 
 2. Download the DATASET from  [https://www.kaggle.com/datasets/harshitkandoi7850/dataset-for-visual-plastic-type-recognition?select=Plastic+types]  
