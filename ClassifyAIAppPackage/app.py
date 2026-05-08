@@ -1203,7 +1203,7 @@ class YoloTrainerApp:
             self.current_process.stdout.close()
             self.current_process.wait()
             if self.current_process.returncode == 0:
-                self.log("\n✅ Process completed successfully!")
+                self.log("\\n✅ Process completed successfully!")
                 self._auto_export_log("inference")
 
                 try:
@@ -1227,6 +1227,43 @@ class YoloTrainerApp:
                     results = model.predict(**kwargs)
 
                     pred_dir = os.path.join(save_dir, "predictions")
+                    
+                    # ── PREDICTION SUMMARY ──
+                    class_totals = {}
+                    class_confidences = {}
+                    
+                    for i, r in enumerate(results):
+                        cls_name = r.names[r.probs.top1]
+                        confidence = float(r.probs.top1conf) * 100
+                        
+                        # Count totals
+                        class_totals[cls_name] = class_totals.get(cls_name, 0) + 1
+                        
+                        # Track confidences for averaging
+                        if cls_name not in class_confidences:
+                            class_confidences[cls_name] = []
+                        class_confidences[cls_name].append(confidence)
+                    
+                    # Log the summary
+                    self.log("\\n" + "=" * 50)
+                    self.log("📊 PREDICTION SUMMARY")
+                    self.log("=" * 50)
+                    self.log(f"{'Class':<25} {'Count':>8} {'Avg Confidence':>16}")
+                    self.log("-" * 50)
+                    
+                    total_images = len(results)
+                    for cls_name in sorted(class_totals.keys()):
+                        count = class_totals[cls_name]
+                        avg_conf = sum(class_confidences[cls_name]) / len(class_confidences[cls_name])
+                        percentage = (count / total_images) * 100 if total_images > 0 else 0
+                        self.log(f"{cls_name:<25} {count:>8} {avg_conf:>14.2f}%  ({percentage:.1f}%)")
+                    
+                    self.log("-" * 50)
+                    self.log(f"{'TOTAL':<25} {total_images:>8}")
+                    self.log("=" * 50)
+                    # ── END SUMMARY ──
+
+                    # Rename images by class (existing logic)
                     class_counters = {}
                     for i, r in enumerate(results):
                         cls_name = r.names[r.probs.top1]
@@ -1251,11 +1288,11 @@ class YoloTrainerApp:
                             self.log(f"  📝 Renamed: {os.path.basename(old_path)} → {new_name}")
 
                     json_path, csv_path = self._save_results_summary(results, pred_dir, export_mode)
-                    self.log(f"\n📄 Summary saved:")
+                    self.log(f"\\n📄 Summary saved:")
                     self.log(f"   JSON: {json_path}")
                     self.log(f"   CSV:  {csv_path}")
                 except Exception as e:
-                    self.log(f"\n⚠️ Could not generate summary files: {e}")
+                    self.log(f"\\n⚠️ Could not generate summary files: {e}")
                     import traceback
                     self.log(traceback.format_exc())
 
@@ -1264,13 +1301,14 @@ class YoloTrainerApp:
             elif self.current_process.returncode == -15 or self.current_process.returncode == 1:
                 self._auto_export_log("inference_stopped")
             else:
-                self.log("\n❌ Process exited with code " + str(self.current_process.returncode))
+                self.log("\\n❌ Process exited with code " + str(self.current_process.returncode))
                 self._auto_export_log("inference_failed")
         except Exception as e:
-            self.log("\n❌ Error: " + str(e))
+            self.log("\\n❌ Error: " + str(e))
             self._auto_export_log("inference_error")
         finally:
             self.current_process = None
+
 
     def test_model_screen(self):
         if not self.selected_model_path.get():
